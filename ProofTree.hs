@@ -16,9 +16,9 @@ import StringRep
 import Unification
 import Optics.Core
 
---data Style = Tree | Prose | Equational
+data Style = Tree | Prose | Equational deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
-data ProofDisplayData = PDD { proseStyle :: Bool, subtitle :: MS.MisoString} 
+data ProofDisplayData = PDD { proofStyle :: Style, subtitle :: MS.MisoString} 
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data ProofTree = PT (Maybe ProofDisplayData) [T.Name] [P.Prop] T.Term (Maybe (P.RuleRef, [ProofTree]))
@@ -37,10 +37,12 @@ instance Monoid Context where
 infixl 9 %+
 (%+) a b = icompose (<>) (a % b)
 
---nextStyle :: Style -> Style
---nextStyle Tree = Prose
---nextStyle Prose = Equational
---nextStyle Equational = Tree
+toggleStyle :: Style -> Style
+toggleStyle Tree = Prose
+toggleStyle Prose = Tree
+toggleStyle Equational = Tree
+
+
 
 subgoals :: IxAffineTraversal' Context ProofTree [ProofTree]
 subgoals = step % _Just % _2
@@ -81,14 +83,17 @@ dependencies :: Traversal' ProofTree P.RuleName
 dependencies = traversalVL guts
   where
     
-    guts act (PT opts sks lcls g (Just (P.Rewrite (P.Defn rr),sgs)))
-        = (\rr' sgs' -> PT opts sks lcls g (Just (P.Rewrite (P.Defn rr'),sgs')))
+    guts act (PT opts sks lcls g (Just (P.Rewrite (P.Defn rr) fl,sgs)))
+        = (\rr' sgs' -> PT opts sks lcls g (Just (P.Rewrite (P.Defn rr') fl,sgs')))
           <$> act rr
           <*> traverse (guts act) sgs
     guts act (PT opts sks lcls g (Just (P.Defn rr,sgs)))
         = (\rr' sgs' -> PT opts sks lcls g (Just (P.Defn rr',sgs')))
           <$> act rr
           <*> traverse (guts act) sgs
+    guts act (PT opts sks lcls g (Just (P.Transitivity,sgs)))
+        = (\sgs' -> PT opts sks lcls g (Just (P.Transitivity,sgs')))
+          <$> traverse (guts act) sgs
     guts act x = pure x
 
 
@@ -137,7 +142,7 @@ applyEq skolems shouldReverse g (r,(P.Forall (m :ms) sgs g')) = do
   applyEq skolems shouldReverse g (r,(P.subst mt 0 (P.Forall ms sgs g')))
 applyEq skolems shouldReverse g (r,(P.Forall [] sgs g')) = do
   (s,t) <- match skolems g (P.Forall [] sgs g')
-  return (s,P.Rewrite r,((PT Nothing [] [] t Nothing):(map fromProp sgs)))
+  return (s,P.Rewrite r shouldReverse,((PT Nothing [] [] t Nothing):(map fromProp sgs)))
   where
     match :: [T.Name] -> T.Term -> P.Prop -> UnifyM (T.Subst, T.Term)
     match skolems  g (P.Forall _ sgs g') = (do
@@ -162,7 +167,8 @@ applySubst subst (PT opts sks lcls g sgs) =
 clear :: P.RuleName -> ProofTree -> ProofTree
 clear toClear x@(PT opts sks lcl g (Just (rr,sgs)))
      | rr == (P.Defn toClear) = PT opts sks lcl g Nothing
-     | rr == (P.Rewrite (P.Defn toClear)) = PT opts sks lcl g Nothing
+     | rr == (P.Rewrite (P.Defn toClear) True) = PT opts sks lcl g Nothing
+     | rr == (P.Rewrite (P.Defn toClear) False) = PT opts sks lcl g Nothing
      | otherwise              = PT opts sks lcl g $ Just (rr, map (clear toClear) sgs)
 clear toClear x = x
 
