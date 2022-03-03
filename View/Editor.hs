@@ -51,7 +51,7 @@ viewEditor x =
           , renderGoal (inputText x) i (Just foc) (displayOptions x) gs
           ]      
         ]
-        ++ case pf of 
+        ++ (case pf of 
           R.GoalFocus rs -> 
             (if null locals then [] else 
               [ block "sidebar-header" ["Assumptions:"]
@@ -76,13 +76,12 @@ viewEditor x =
                       ]
             , div_ [class_ "sidebar-assumptions"] (map (renderAvailableRule [] (displayOptions x) (i,p)) rs)
             ]
-          _ -> []
-           ++ [[button "apply-option" "Transitivity" (ItemAction (Just i) $ I.RuleAct $ act) [typicon "equals"]]] 
+          _ -> [])
+           ++ [button "apply-option" "Transitivity" (ItemAction (Just i) $ I.RuleAct $ act) [typicon "equals"]] 
                 where
                   r= Pr.Forall ["A","B","C"] [(Pr.Forall [] [] (T.Ap (T.Ap (T.Const "_=_") (T.LocalVar 0)) (T.LocalVar 1))), (Pr.Forall [] [] (T.Ap (T.Ap (T.Const "_=_") (T.LocalVar 1)) (T.LocalVar 2)))] (T.Ap (T.Ap (T.Const "_=_") (T.LocalVar 0)) (T.LocalVar 2))
                   opts = (displayOptions x)
                   ruleDOs = RDO {termDisplayOptions = tDOs opts, showInitialMetas = showMetaBinders opts, ruleStyle = compactRules opts}
-                  (ctx, rs) = rulesSummary (i, p) (document x)
                   Just act = R.applyRuleTactic tl (Pr.Transitivity, r) p where tl = getRuleAt i (document x)
 
 
