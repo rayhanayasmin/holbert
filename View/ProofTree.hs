@@ -79,6 +79,7 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                   $ (if inTree || showPreamble then id else (span_ [class_ "item-rule-proofheading"] ["Proof. " ] :) )
                   $ (if inTree || not showPreamble then id else ("by: ":))
                   $ (if inTree then id else (styleButton :))
+                  $ (if inTree then id else (equationalButton :))
                   $ pure $ (case shouldBeStyle of {Equational -> equationalrule binders (map (renderTermCtx ctx (TDO True True)) (flatten pt)); _ -> inferrule binders}) premises spacer ruleTitle conclusion
 
       where
@@ -122,7 +123,10 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
 
 
 
-flatten :: ProofTree -> [T.Term]
+flatten :: ProofTree -> (T.Term, [(T.Term, ProofTree, Path)])
+flatten (PT opts sks lcls g (Just (P.Transitivity, [a,b]))) = (g, )
+
+{-flatten :: ProofTree -> [T.Term]
 flatten pt = renderTransitive (map extract (proofTreeList pt))
 
 proofTreeList :: ProofTree -> [ProofTree]
@@ -142,5 +146,4 @@ renderTransitive (x:xs) = takeBoth x ++ concatMap takeSecond xs where
   takeSecond :: T.Term -> [T.Term]
   takeSecond (T.Ap (T.Const "_=_") (T.Ap a b)) = [b]
   takeSecond (T.Ap (T.Ap (T.Const "_=_") a) b) = [b]
-  takeSecond _ = []
-
+  takeSecond _ = [] -}
