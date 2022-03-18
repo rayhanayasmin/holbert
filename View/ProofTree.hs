@@ -75,11 +75,12 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                   $ (if inTree then id else (styleButton :))
                   $ (if inTree then id else (equationalButton :))
                   $ pure $ (table_ 
-                    [ intProp "cellpadding" 0, class_ "equational-proof",intProp "cellspacing" 0]
+                    [ intProp "cellpadding" 2, class_ "equational-proof",intProp "cellspacing" 2]
                     ([ tr_ []
                       $  [td_ [class_ "rule-cell rule-binderbox"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) a1]]
                       ++ [td_ [class_ "rule-cell rule-spacer"] [" = "]]
                       ++ [td_ [class_ "rule-cell rule-rulebox"] ["   "]]
+                      ++  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++  [td_ [class_ "rule-cell rule-empty"] [" "]]
                     ] ++ (concatMap (renderEqPT ctx') bs)))
           else if shouldShowWords then 
@@ -131,13 +132,15 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                       $  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
                       ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
-                      ++ [td_ [class_ "rule-cell rule_ref"] ["rr - rule name goes here"]]]
+                      ++ [td_ [class_ "rule-cell rule_ref"] [renderRR rr]]]
+                      ++ [td_ [class_ "rule-cell rule_delete"] [iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix pth)]]
 
       Nothing -> [tr_ []
                       $  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
                       ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
                       ++ [td_ [class_ "rule-cell rule_ref"] [spacer]]]
+                      ++ [td_ [class_ "rule-cell rule_delete"] [iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix (drop 1 pth))]]
 
       where
         spacer = maybe (goalButton pth) (const $ "") pt
