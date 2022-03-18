@@ -101,7 +101,7 @@ inferrule binders premises spacer ruleTitle conclusion =
     , tr_ [] [td_ [class_ "rule-cell rule-conclusion", colspan_ (MS.pack $ show $ length premises + 1)] conclusion]
     ]
 
-equationalrule binders [] premises spacer ruleTitle conclusion =
+{-equationalrule binders [] premises spacer ruleTitle conclusion =
   span_ [] ["<br> The current proof cannot be represented in the equational style"]
 
 equationalrule binders [x] premises spacer ruleTitle conclusion =
@@ -126,7 +126,7 @@ displayeqline x y = [
       ++ [td_ [class_ "rule-cell equals"] [" = "]]
       ++ [td_ [class_ "rule-cell rule-spacer"] ["    "]]
       ++  case y of {Nothing -> [td_ [class_ "rule-cell rule-spacer"] ["    "]]; Just y -> [td_ [class_ "rule-cell rule-spacer"] [y]]}
-                           ]
+                           ]-}
 
 wordsrule [p] _ _ _ =  div_ [class_ "word-proof"] [p]
 wordsrule premises _ _ _ =

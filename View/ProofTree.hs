@@ -36,7 +36,7 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                  ++ boundrules
           boundrules = if assumptionsMode opts == Hidden && not showPreamble then map rulebinder [length rns .. length rns + length lcls - 1] else []       
           premises = case msgs of
-            Just (rr, sgs) -> zipWith (renderPT (inTree || (shouldBeStyle == Tree)) (isJust ptopts) rns' ctx') (map (: pth) [0 ..]) sgs
+            Just (rr, sgs) -> zipWith (renderPT (inTree || (shouldBeStyle /= Prose)) (isJust ptopts) rns' ctx') (map (: pth) [0 ..]) sgs
             Nothing        -> []
           spacer = maybe (goalButton pth) (const $ "") msgs
 
@@ -68,7 +68,21 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
               New  | not showPreamble -> lcls
               Cumulative | not showPreamble -> rns'
               _ -> []) prp
-       in if shouldShowWords then 
+       in if (shouldBeStyle == Equational) then
+            multi $ (if inTree || not showPreamble then id else (preamble:) )                
+                  $ (if inTree || showPreamble then id else (span_ [class_ "item-rule-proofheading"] ["Proof. " ] :) )
+                  $ (if inTree || not showPreamble then id else ("by: ":))
+                  $ (if inTree then id else (styleButton :))
+                  $ (if inTree then id else (equationalButton :))
+                  $ pure $ (table_ 
+                    [ intProp "cellpadding" 0, class_ "equational-proof",intProp "cellspacing" 0]
+                    ([ tr_ []
+                      $  [td_ [class_ "rule-cell rule-binderbox"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) a1]]
+                      ++ [td_ [class_ "rule-cell rule-spacer"] [" = "]]
+                      ++ [td_ [class_ "rule-cell rule-rulebox"] ["   "]]
+                      ++  [td_ [class_ "rule-cell rule-empty"] [" "]]
+                    ] ++ (concatMap (renderEqPT ctx') bs)))
+          else if shouldShowWords then 
             multi $ (if showPreamble then id else (span_ [class_ "item-rule-proofheading"] ["Proof. "] :) )
                   $ (preamble:)
                   $ (multi [" by ", fromMaybe "" ruleTitle, spacer, if null premises then ". " else ": "]  :)
@@ -80,9 +94,10 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                   $ (if inTree || not showPreamble then id else ("by: ":))
                   $ (if inTree then id else (styleButton :))
                   $ (if inTree then id else (equationalButton :))
-                  $ pure $ (case shouldBeStyle of {Equational -> equationalrule binders (map (renderTermCtx ctx (TDO True True)) (flatten pt)); _ -> inferrule binders}) premises spacer ruleTitle conclusion
+                  $ pure $ inferrule binders premises spacer ruleTitle conclusion
 
       where
+        (a1, bs) = flatten (PT ptopts sks lcls prp msgs) pth
         wordsrule [p] =  div_ [class_ "word-proof"] [p]
         wordsrule premises =
           div_ [class_ "word-proof"] [ ul_ [] $ map (li_ [] . pure) premises ]
@@ -93,7 +108,7 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
         equationalButton = if (shouldBeStyle == Tree || shouldBeStyle == Prose) && True then
                         iconButton "grey" "Switch to equational style" "equals" (Act $ R.ToggleEquational pth)
                       else if (shouldBeStyle == Equational)  then
-                        button_ [class_ "button-icon button-icon-grey", type_ "button", title_ "Already in equational style"] [typicon "equals-outline"]
+                        iconButton "grey" "Switch to tree style" "tree" (Act $ R.ToggleEquational pth)
                       else
                         button_ [class_ "button-icon button-icon-grey", type_ "button", title_ "Cannot apply equational style"] [typicon "equals-outline"]
                         
@@ -109,6 +124,23 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
 
         rns' = map (P.raise (length sks)) rns ++ lcls
         ctx' = reverse sks ++ ctx
+    
+    renderEqPT :: [T.Name] -> (T.Term, (Maybe (P.RuleRef, [ProofTree])), Path) -> [View (LocalAction (R.Focus R.Rule) (R.Action R.Rule))]
+    renderEqPT ctx (g, pt, pth) = case pt of
+      Just (rr, pts) -> [tr_ []
+                      $  [td_ [class_ "rule-cell rule-empty"] [" "]]
+                      ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
+                      ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
+                      ++ [td_ [class_ "rule-cell rule_ref"] ["rr - rule name goes here"]]]
+
+      Nothing -> [tr_ []
+                      $  [td_ [class_ "rule-cell rule-empty"] [" "]]
+                      ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
+                      ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
+                      ++ [td_ [class_ "rule-cell rule_ref"] [spacer]]]
+
+      where
+        spacer = maybe (goalButton pth) (const $ "") pt
 
 
     metabinder' pth i n = case selected of
@@ -123,8 +155,24 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
 
 
 
-flatten :: ProofTree -> (T.Term, [(T.Term, ProofTree, Path)])
-flatten (PT opts sks lcls g (Just (P.Transitivity, [a,b]))) = (g, )
+flatten :: ProofTree -> Path -> (T.Term, [(T.Term, (Maybe (P.RuleRef, [ProofTree])), Path)])
+flatten (PT opts sks lcls (T.Ap (T.Const "_=_") (T.Ap g1 g2)) (Just (P.Transitivity, [a,b]))) pth = (g1, as++bs) where
+  as = flattenTail a (0:pth)
+  bs = flattenTail b (1:pth)
+flatten (PT opts sks lcls (T.Ap (T.Ap (T.Const "_=_") g1) g2) (Just (P.Transitivity, [a,b]))) pth = (g1, as++bs) where
+  as = flattenTail a (0:pth)
+  bs = flattenTail b (1:pth)
+flatten (PT opts sks lcls g mgs) pth = (g, [])
+
+
+flattenTail :: ProofTree -> Path -> [(T.Term, (Maybe (P.RuleRef, [ProofTree])), Path)]
+flattenTail (PT opts sks lcls g (Just (P.Transitivity, [a,b]))) pth = as++bs where
+  as = flattenTail a (0:pth)
+  bs = flattenTail b (1:pth)
+
+flattenTail (PT opts sks lcls (T.Ap (T.Const "_=_") (T.Ap g1 g2)) mgs) pth = [(g2, mgs, pth)]
+flattenTail (PT opts sks lcls (T.Ap (T.Ap (T.Const "_=_") g1) g2) mgs) pth = [(g2, mgs, pth)]
+flattenTail (PT opts sks lcls g mgs) pth = []
 
 {-flatten :: ProofTree -> [T.Term]
 flatten pt = renderTransitive (map extract (proofTreeList pt))
@@ -146,4 +194,4 @@ renderTransitive (x:xs) = takeBoth x ++ concatMap takeSecond xs where
   takeSecond :: T.Term -> [T.Term]
   takeSecond (T.Ap (T.Const "_=_") (T.Ap a b)) = [b]
   takeSecond (T.Ap (T.Ap (T.Const "_=_") a) b) = [b]
-  takeSecond _ = [] -}
+  takeSecond _ = []-}
