@@ -78,7 +78,7 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                     [ intProp "cellpadding" 2, class_ "equational-proof",intProp "cellspacing" 2]
                     ([ tr_ []
                       $  [td_ [class_ "rule-cell rule-binderbox"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) a1]]
-                      ++ [td_ [class_ "rule-cell rule-spacer"] [" = "]]
+                      ++ [td_ [class_ "rule-cell rule-spacer"] ["  "]]
                       ++ [td_ [class_ "rule-cell rule-rulebox"] ["   "]]
                       ++  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++  [td_ [class_ "rule-cell rule-empty"] [" "]]
@@ -132,15 +132,13 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                       $  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
                       ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
-                      ++ [td_ [class_ "rule-cell rule_ref"] [renderRR rr]]]
-                      ++ [td_ [class_ "rule-cell rule_delete"] [iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix pth)]]
+                      ++ [td_ [class_ "rule-cell rule_ref"] [inline "" [renderRR rr, iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix pth)]]]]
 
       Nothing -> [tr_ []
                       $  [td_ [class_ "rule-cell rule-empty"] [" "]]
                       ++ [td_ [class_ "rule-cell rule-equals"] [" = "]]
                       ++ [td_ [class_ "rule-cell rule_term"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) g]]
-                      ++ [td_ [class_ "rule-cell rule_ref"] [spacer]]]
-                      ++ [td_ [class_ "rule-cell rule_delete"] [iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix (drop 1 pth))]]
+                      ++ [td_ [class_ "rule-cell rule_ref"] [inline "" [spacer, iconButton "red" "Delete sub-equality" "trash" (Act $ R.Nix (drop 1 pth))]]]]
 
       where
         spacer = maybe (goalButton pth) (const $ "") pt
@@ -165,6 +163,10 @@ flatten (PT opts sks lcls (T.Ap (T.Const "_=_") (T.Ap g1 g2)) (Just (P.Transitiv
 flatten (PT opts sks lcls (T.Ap (T.Ap (T.Const "_=_") g1) g2) (Just (P.Transitivity, [a,b]))) pth = (g1, as++bs) where
   as = flattenTail a (0:pth)
   bs = flattenTail b (1:pth)
+flatten (PT opts sks lcls (T.Ap (T.Const "_=_") (T.Ap g1 g2)) (Just (rr, mgs))) pth = (g1, [(g2, (Just (rr, mgs)),(0:pth))]) 
+flatten (PT opts sks lcls (T.Ap (T.Ap (T.Const "_=_") g1) g2) (Just (rr, mgs))) pth = (g1, [(g2, (Just (rr, mgs)),(0:pth))])
+flatten (PT opts sks lcls (T.Ap (T.Const "_=_") (T.Ap g1 g2)) (Nothing)) pth = (g1, [(g2, (Nothing),(0:pth))])
+flatten (PT opts sks lcls (T.Ap (T.Ap (T.Const "_=_") g1) g2) (Nothing)) pth = (g1, [(g2, (Nothing),(0:pth))])
 flatten (PT opts sks lcls g mgs) pth = (g, [])
 
 
