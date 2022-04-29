@@ -77,7 +77,7 @@ renderProofTree opts pt tbl selected textIn = renderPT False False [] [] [] pt
                   $ pure $ (table_ 
                     [ intProp "cellpadding" 2, class_ "equational-proof",intProp "cellspacing" 2]
                     ([ tr_ []
-                      $  [td_ [class_ "rule-cell rule-binderbox"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx (tDOs opts) a1]]
+                      $  [td_ [class_ "rule-cell rule-binderbox"] [renderTermCtxEditable (Just (textIn, flip R.ProofFocus currentGS . R.MetavariableFocus, R.InstantiateMetavariable, selected)) ctx' (tDOs opts) a1]]
                       ++ [td_ [class_ "rule-cell rule-spacer"] ["  "]]
                       ++ [td_ [class_ "rule-cell rule-rulebox"] ["   "]]
                       ++  [td_ [class_ "rule-cell rule-empty"] [" "]]

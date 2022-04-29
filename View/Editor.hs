@@ -74,7 +74,7 @@ viewEditor x =
                       [ input_ [checked_ b, id_ "rev_rewrite", type_ "checkbox", onChecked (\(Checked b) -> ItemAction (Just i) $ I.RuleAct $ R.RewriteGoal b)]
                       , label_ [class_ "rewrite-checkbox-label", for_ "rev_rewrite"] ["Reverse rewrite application"]
                       ]
-            , div_ [class_ "sidebar-assumptions"] (map (renderAvailableRule [] (displayOptions x) (i,p)) rs)
+            , div_ [class_ "sidebar-assumptions"] (map (renderAvailableRule (map (\(_,_,n)->n) (reverse binds)) (displayOptions x) (i,p)) rs)
             ]
           _ -> [])
            ++ [button "apply-option" "Transitivity" (ItemAction (Just i) $ I.RuleAct $ act) [typicon "equals"]] 

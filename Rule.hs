@@ -172,9 +172,9 @@ instance Control Rule where
   handle (RewriteGoal rev) state = do 
     foc <- getOriginalFocus 
     case foc of 
-      Just (ProofFocus _ (Just gs@(GS _ _ t p _)))  -> do
+      Just (ProofFocus _ (Just gs@(GS _ lcls t p _)))  -> do
         rules <- filter (P.isRewrite . snd) <$> getKnownRules
-        setFocus (ProofFocus (RewriteGoalFocus rev (mapMaybe (\r -> (,) r <$> applyRewriteTactic state r rev p ) rules)) (Just gs))
+        setFocus (ProofFocus (RewriteGoalFocus rev (mapMaybe (\r -> (,) r <$> applyRewriteTactic state r rev p ) (map fst lcls ++ rules))) (Just gs))
         pure state
       _ -> pure state
   handle (Tactic ps pth) state = let 
